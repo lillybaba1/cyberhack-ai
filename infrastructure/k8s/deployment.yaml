@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cyberhack-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cyberhack-ai
+  template:
+    metadata:
+      labels:
+        app: cyberhack-ai
+    spec:
+      containers:
+        - name: backend
+          image: backend-image

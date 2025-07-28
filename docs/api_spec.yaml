@@ -1,0 +1,22 @@
+openapi: 3.0.0
+info:
+  title: CyberHack AI API
+  version: 1.0.0
+paths:
+  /auth/login:
+    post:
+      summary: User login
+      responses:
+        '200':
+          description: JWT token
+  /scans/vuln:
+    post:
+      summary: Run vulnerability scan
+      parameters:
+        - name: target
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Scan results

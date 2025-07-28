@@ -1,0 +1,23 @@
+version: '3'
+services:
+  frontend:
+    build: ../frontend
+    ports:
+      - "3000:3000"
+  backend:
+    build: ../backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+  db:
+    image: postgres
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+  redis:
+    image: redis
+  ai_scanner:
+    build: ../services/ai_scanner

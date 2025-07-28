@@ -1,0 +1,14 @@
+name: Web App Flow
+steps:
+  - name: Recon
+    tool: recon-ng
+    params:
+      target: "{{ domain }}"
+  - name: Scan
+    tool: nmap
+    params:
+      ports: all
+    condition: if open_ports > 100
+  - name: Exploit
+    tool: metasploit
+    module: exploit/multi/http

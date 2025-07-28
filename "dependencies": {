@@ -1,0 +1,4 @@
+"dependencies": {
+  // ...existing
+  "axios": "^1.7.2"
+}

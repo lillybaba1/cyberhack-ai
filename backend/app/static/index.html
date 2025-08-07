@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CyberHack AI – Scanner</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif;margin:40px;max-width:980px}
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+  h1{margin:0}
+  .card{border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-top:12px}
+  input,button{font-size:16px}
+  input{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px}
+  button{padding:10px 14px;border-radius:8px;border:1px solid #111827;background:#111827;color:#fff;cursor:pointer}
+  button:disabled{opacity:.6;cursor:not-allowed}
+  .row{display:flex;gap:12px;align-items:center}
+  .row>*{flex:1}
+  pre{white-space:pre-wrap;word-break:break-word;margin:0}
+  table{width:100%;border-collapse:collapse}
+  th,td{border-top:1px solid #e5e7eb;padding:8px;text-align:left;font-size:14px}
+  .muted{color:#6b7280}
+  .pill{padding:2px 8px;border-radius:999px;background:#eef2ff;display:inline-block}
+</style>
+
+<header>
+  <h1>CyberHack AI</h1>
+  <nav><a href="/docs">API Docs</a></nav>
+</header>
+
+<div class="card">
+  <div class="row">
+    <input id="target" placeholder="e.g. example.com" />
+    <button id="go">Start Scan</button>
+  </div>
+  <div id="status" class="muted" style="margin-top:10px;">Ready.</div>
+</div>
+
+<div class="card">
+  <h3>Result</h3>
+  <pre id="out">— no result yet —</pre>
+</div>
+
+<div class="card">
+  <h3>Recent Scans</h3>
+  <table>
+    <thead><tr><th>ID</th><th>Target</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+
+<footer class="muted">Demo UI – persists history in Postgres. Endpoints: <code>/scan/scans</code>.</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+
+async function listScans(){
+  const r = await fetch('/scan/scans');
+  const data = await r.json();
+  const tbody = $("rows");
+  tbody.innerHTML = "";
+  for (const s of data){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${s.id}</td>
+      <td>${s.target}</td>
+      <td><span class="pill">${s.status}</span></td>
+      <td class="muted">${new Date(s.created_at).toLocaleString()}</td>
+      <td>
+        <button data-id="${s.id}" class="view">View</button>
+        <button data-target="${s.target}" class="rerun">Run again</button>
+      </td>`;
+    tbody.appendChild(tr);
+  }
+  tbody.querySelectorAll('.view').forEach(b=>{
+    b.onclick = async () => {
+      const id = b.getAttribute('data-id');
+      const r = await fetch(`/scan/scans/${id}`);
+      const s = await r.json();
+      $("out").textContent = JSON.stringify(s, null, 2);
+    };
+  });
+  tbody.querySelectorAll('.rerun').forEach(b=>{
+    b.onclick = async () => {
+      $("target").value = b.getAttribute('data-target');
+      $("go").click();
+    };
+  });
+}
+
+async function poll(id){
+  for (let i=0;i<30;i++){
+    const r = await fetch(`/scan/scans/${id}`);
+    const s = await r.json();
+    if (s.status === "done" || s.status === "error"){
+      $("out").textContent = JSON.stringify(s, null, 2);
+      $("status").textContent = s.status === "done" ? "Done." : "Error.";
+      listScans();
+      return;
+    }
+    $("status").textContent = `Running… (id ${id})`;
+    await new Promise(res=>setTimeout(res, 1000));
+  }
+  $("status").textContent = "Timed out waiting for result.";
+}
+
+$("go").addEventListener("click", async () => {
+  const target = $("target").value.trim();
+  if(!target){ $("status").textContent = "Please enter a target."; return; }
+  $("go").disabled = true;
+  $("status").textContent = "Starting scan…";
+  $("out").textContent = "";
+
+  try{
+    const res = await fetch('/scan/scans', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({target})
+    });
+    const s = await res.json();
+    $("status").textContent = `Scan queued (id ${s.id})`;
+    poll(s.id);
+    listScans();
+  }catch(err){
+    $("out").textContent = String(err);
+    $("status").textContent = "Error.";
+  }finally{
+    $("go").disabled = false;
+  }
+});
+
+listScans();
+</script>
+</html>

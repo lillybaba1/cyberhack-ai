@@ -17,3 +17,63 @@ services:
     image: redis:7-alpine
 volumes:
   pgdata:
+  tools:
+    build: ./tools-runner
+    ports: [ "9000:9000" ]  # optional: can remove in prod
+    security_opt: [ "no-new-privileges:true" ]
+    read_only: true
+    cap_drop: [ "ALL" ]
+    tmpfs: [ "/tmp:size=16m" ]
+    mem_limit: 512m
+    cpus: 0.5
+    user: 65534:65534  # nobody
+  tools:
+    build: ./tools-runner
+    ports: [ "9000:9000" ]  # optional: can remove in prod
+    security_opt: [ "no-new-privileges:true" ]
+    read_only: true
+    cap_drop: [ "ALL" ]
+    tmpfs: [ "/tmp:size=16m" ]
+    mem_limit: 512m
+    cpus: 0.5
+    user: 65534:65534  # nobody
+  tools:
+    build: ./tools-runner
+    ports: [ "9000:9000" ]  # optional: can remove in prod
+    security_opt: [ "no-new-privileges:true" ]
+    read_only: true
+    cap_drop: [ "ALL" ]
+    tmpfs: [ "/tmp:size=16m" ]
+    mem_limit: 512m
+    cpus: 0.5
+    user: 65534:65534  # nobody
+  tools:
+    build: ./tools-runner
+    ports: [ "9000:9000" ]  # optional: can remove in prod
+    security_opt: [ "no-new-privileges:true" ]
+    read_only: true
+    cap_drop: [ "ALL" ]
+    tmpfs: [ "/tmp:size=16m" ]
+    mem_limit: 512m
+    cpus: 0.5
+    user: 65534:65534  # nobody
+  tools:
+    build: ./tools-runner
+    ports: [ "9000:9000" ]  # optional: can remove in prod
+    security_opt: [ "no-new-privileges:true" ]
+    read_only: true
+    cap_drop: [ "ALL" ]
+    tmpfs: [ "/tmp:size=16m" ]
+    mem_limit: 512m
+    cpus: 0.5
+    user: 65534:65534  # nobody
+  tools:
+    build: ./tools-runner
+    ports: [ "9000:9000" ]  # optional: can remove in prod
+    security_opt: [ "no-new-privileges:true" ]
+    read_only: true
+    cap_drop: [ "ALL" ]
+    tmpfs: [ "/tmp:size=16m" ]
+    mem_limit: 512m
+    cpus: 0.5
+    user: 65534:65534  # nobody

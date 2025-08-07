@@ -1,17 +1,12 @@
-from fastapi import FastAPI, Depends
-from fastapi.security import OAuth2PasswordBearer
-from .api import auth, scans
-from .db import engine, Base
+from fastapi import FastAPI
+from .api.health import router as health_router
+from .api.scans import router as scans_router
 
-app = FastAPI(title="CyberHack AI Backend")
+app = FastAPI(title="CyberHack AI")
 
-Base.metadata.create_all(bind=engine)
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-
-app.include_router(auth.router, prefix="/auth")
-app.include_router(scans.router, prefix="/scans")
+app.include_router(health_router, prefix="/healthz", tags=["health"])
+app.include_router(scans_router, prefix="/scan", tags=["scan"])
 
 @app.get("/")
 def root():
-    return {"message": "CyberHack AI API"}
+    return {"ok": True}

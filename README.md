@@ -1,3 +1,5 @@
+[![CI](https://github.com/lillybaba1/cyberhack-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/lillybaba1/cyberhack-ai/actions/workflows/ci.yml)
+
 # CyberHack AI
 
 ## Quickstart

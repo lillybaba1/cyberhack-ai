@@ -1,3 +1,12 @@
+import os, subprocess
+
+DRY_RUN = os.getenv("DRY_RUN") == "1"
+
+def run_cmd(cmd, timeout=60):
+    if DRY_RUN:
+        return subprocess.CompletedProcess(cmd, 0, stdout="{}", stderr="")
+    return run_cmd(cmd, capture_output=True, text=True, timeout=timeout)
+
 import re, json, subprocess, sys, xml.etree.ElementTree as ET
 from typing import Dict, Any, List
 from fastapi import FastAPI, HTTPException
@@ -34,7 +43,7 @@ def normalize(raw: str) -> tuple[str,str,str]:
 def sh(cmd: List[str], timeout: int = 180) -> Dict[str, Any]:
     log(f"[runner] Running: {' '.join(cmd)}")
     try:
-        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        p = run_cmd(cmd, capture_output=True, text=True, timeout=timeout)
         if p.stdout: log(f"[runner] stdout ({len(p.stdout)}):\n{p.stdout[:4000]}")
         if p.stderr: log(f"[runner] stderr ({len(p.stderr)}):\n{p.stderr[:2000]}")
         return {"code": p.returncode, "out": p.stdout, "err": p.stderr}

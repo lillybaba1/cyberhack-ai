@@ -1,3 +1,12 @@
+import os, subprocess
+
+DRY_RUN = os.getenv("DRY_RUN") == "1"
+
+def run_cmd(cmd, timeout=60):
+    if DRY_RUN:
+        return subprocess.CompletedProcess(cmd, 0, stdout="{}", stderr="")
+    return run_cmd(cmd, capture_output=True, text=True, timeout=timeout)
+
 import time, os, requests
 from typing import List, Optional
 from fastapi import APIRouter, Query, BackgroundTasks, HTTPException

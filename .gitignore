@@ -1,0 +1,8 @@
+frontend/build/
+frontend/node_modules/
+**/__pycache__/
+
+# ignore local stuff
+.env
+*.bak
+frontend/node_modules/

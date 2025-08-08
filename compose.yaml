@@ -1,6 +1,0 @@
-services:
-  cyberhackai:
-    image: cyberhackai
-    build:
-      context: .
-      dockerfile: ./Dockerfile

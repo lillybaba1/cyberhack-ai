@@ -1,13 +1,11 @@
-# Contributing to CyberHack AI
+# Contributing to CyberHack-AI
 
-## Coding Standards
-- Python: PEP8, black/isort
-- JS/TS: ESLint/Prettier
-- Commit: Conventional Commits
+Thanks for your interest in contributing! Follow these steps to keep the project clean, secure, and maintainable.
 
-## PR Workflow
-1. Fork & branch: `feature/xyz`
-2. Test locally
-3. PR to main with description
+## 1. Fork & Branch
+- Fork the repo to your GitHub account.
+- Clone your fork locally.
+- Create a new branch for each feature or fix:
+```bash
+git checkout -b feature/your-feature-name
 
-No morals, no limits—hack freely.

@@ -1,0 +1,31 @@
+services:
+  api:
+    build: .
+    ports: ["8000:8000"]
+    env_file: [.env]
+    depends_on: [db, cache, tools]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    cap_drop: ["ALL"]
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cyberhack
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+
+  cache:
+    image: redis:7-alpine
+
+  tools:
+    build: ./tools-runner
+    ports: ["9000:9000"]        # dev convenience; remove in prod
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    cap_drop: ["ALL"]
+    tmpfs: ["/tmp:size=16m"]
+    user: "65534:65534"
+
+volumes:
+  pgdata:

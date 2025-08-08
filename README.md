@@ -1,21 +1,18 @@
-<<<<<<< HEAD
+[![CI](https://github.com/lillybaba1/cyberhack-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/lillybaba1/cyberhack-ai/actions/workflows/ci.yml)
+
 # CyberHack AI
 
-## Overview
-CyberHack AI leverages AI for cybersecurity assessments, vulnerability scanning, and interactive training.
+## Quickstart
+```bash
+cp .env.example .env
+docker compose -f compose.yml up --build
+# API: http://localhost:8000/healthz
 
-## Setup Instructions
-1. Clone repo: `git clone https://your-repo/cyberhack-ai.git`
-2. Install deps: Run `./scripts/setup.sh`
-3. Local dev: `docker-compose up`
-4. Access: Frontend at http://localhost:3000, Backend at http://localhost:8000
 
-## Tech Stack
-- Frontend: React/TS, Tailwind, shadcn/ui
-- Backend: FastAPI (Python)
-- DB: PostgreSQL, Redis
-- AI: Python services (expand to GPT/CodeBERT)
-- Deployment: Docker, K8s on AWS/GCP
+## Development
 
-For contributions, see CONTRIBUTING.md.
+### 1. Clone and enter repo
+```bash
+git clone git@github.com:lillybaba1/cyberhack-ai.git
+cd cyberhack-ai
 

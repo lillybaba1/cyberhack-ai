@@ -8,9 +8,11 @@
   header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
   h1{margin:0}
   .card{border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-top:12px}
-  input,button{font-size:16px}
+  input,button,select{font-size:16px}
   input{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px}
+  select{padding:10px;border:1px solid #d1d5db;border-radius:8px}
   button{padding:10px 14px;border-radius:8px;border:1px solid #111827;background:#111827;color:#fff;cursor:pointer}
+  button.ghost{background:#fff;color:#111;border-color:#d1d5db}
   button:disabled{opacity:.6;cursor:not-allowed}
   .row{display:flex;gap:12px;align-items:center}
   .row>*{flex:1}
@@ -19,6 +21,7 @@
   th,td{border-top:1px solid #e5e7eb;padding:8px;text-align:left;font-size:14px}
   .muted{color:#6b7280}
   .pill{padding:2px 8px;border-radius:999px;background:#eef2ff;display:inline-block}
+  .toolbar{display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px}
 </style>
 
 <header>
@@ -28,7 +31,18 @@
 
 <div class="card">
   <div class="row">
-    <input id="target" placeholder="e.g. example.com" />
+    <input id="target" placeholder="e.g. scanme.nmap.org" />
+    <select id="tool">
+      <option>nmap</option>
+      <option>whatweb</option>
+      <option>nikto</option>
+      <option>sqlmap</option>
+      <option>dirb</option>
+      <option>theharvester</option>
+      <option>amass</option>
+      <option>dnsenum</option>
+      <option>curl</option>
+    </select>
     <button id="go">Start Scan</button>
   </div>
   <div id="status" class="muted" style="margin-top:10px;">Ready.</div>
@@ -40,14 +54,18 @@
 </div>
 
 <div class="card">
+  <div class="toolbar">
+    <button id="clear-done" class="ghost">Clear Done</button>
+    <button id="clear-all" class="ghost">Clear All</button>
+  </div>
   <h3>Recent Scans</h3>
   <table>
-    <thead><tr><th>ID</th><th>Target</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+    <thead><tr><th>ID</th><th>Tool</th><th>Target</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
     <tbody id="rows"></tbody>
   </table>
 </div>
 
-<footer class="muted">Demo UI – persists history in Postgres. Endpoints: <code>/scan/scans</code>.</footer>
+<footer class="muted">Demo UI – persists history in Postgres. Use only on targets you own/permit.</footer>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -61,12 +79,14 @@ async function listScans(){
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${s.id}</td>
+      <td>${s.tool}</td>
       <td>${s.target}</td>
       <td><span class="pill">${s.status}</span></td>
       <td class="muted">${new Date(s.created_at).toLocaleString()}</td>
       <td>
         <button data-id="${s.id}" class="view">View</button>
-        <button data-target="${s.target}" class="rerun">Run again</button>
+        <button data-target="${s.target}" data-tool="${s.tool}" class="rerun">Run again</button>
+        <button data-id="${s.id}" class="del ghost">Delete</button>
       </td>`;
     tbody.appendChild(tr);
   }
@@ -81,29 +101,45 @@ async function listScans(){
   tbody.querySelectorAll('.rerun').forEach(b=>{
     b.onclick = async () => {
       $("target").value = b.getAttribute('data-target');
+      $("tool").value = b.getAttribute('data-tool');
       $("go").click();
+    };
+  });
+  tbody.querySelectorAll('.del').forEach(b=>{
+    b.onclick = async () => {
+      const id = b.getAttribute('data-id');
+      if (!confirm(`Delete scan #${id}?`)) return;
+      await fetch(`/scan/scans/${id}`, { method: 'DELETE' });
+      listScans();
     };
   });
 }
 
+async function clearScans(mode){
+  if (mode === 'all' && !confirm("Delete ALL scans?")) return;
+  await fetch(`/scan/scans?status=${encodeURIComponent(mode)}`, { method: 'DELETE' });
+  listScans();
+}
+
 async function poll(id){
-  for (let i=0;i<30;i++){
+  for (let i=0;i<60;i++){
     const r = await fetch(`/scan/scans/${id}`);
     const s = await r.json();
     if (s.status === "done" || s.status === "error"){
       $("out").textContent = JSON.stringify(s, null, 2);
-      $("status").textContent = s.status === "done" ? "Done." : "Error.";
+      $("status").textContent = s.status.toUpperCase();
       listScans();
       return;
     }
     $("status").textContent = `Running… (id ${id})`;
-    await new Promise(res=>setTimeout(res, 1000));
+    await new Promise(res=>setTimeout(res, 1500));
   }
   $("status").textContent = "Timed out waiting for result.";
 }
 
 $("go").addEventListener("click", async () => {
   const target = $("target").value.trim();
+  const tool = $("tool").value;
   if(!target){ $("status").textContent = "Please enter a target."; return; }
   $("go").disabled = true;
   $("status").textContent = "Starting scan…";
@@ -113,8 +149,12 @@ $("go").addEventListener("click", async () => {
     const res = await fetch('/scan/scans', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({target})
+      body: JSON.stringify({target, tool})
     });
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error(`API error ${res.status}: ${t}`);
+    }
     const s = await res.json();
     $("status").textContent = `Scan queued (id ${s.id})`;
     poll(s.id);
@@ -126,6 +166,9 @@ $("go").addEventListener("click", async () => {
     $("go").disabled = false;
   }
 });
+
+$("clear-done").onclick = () => clearScans('done');
+$("clear-all").onclick  = () => clearScans('all');
 
 listScans();
 </script>

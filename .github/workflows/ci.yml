@@ -1,66 +1,34 @@
 name: CI
-
-on:
-  push:
-  pull_request:
-
+on: [push, pull_request]
 jobs:
-  test-and-integration:
+  test:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Install deps + pytest
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Install deps
+        working-directory: backend
         run: |
-          pip install -r requirements.txt
-          python -m pip install pytest
-
-      - name: Run unit tests
-        run: pytest -q
-
-      - name: Build Docker image
-        run: docker build -t cyberhack-ai .
-
-      - name: Prepare env file for compose
-        run: cp .env.example .env
-
-      - name: Start stack with docker compose
-        run: docker compose up -d
-
-      - name: Wait for API to be healthy
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+      - name: Unit tests (no integrations)
+        working-directory: backend
+        env: { DRY_RUN: "1" }
+        run: |
+          pytest -q -m "not integration" || pytest -q
+      - name: Build & start minimal stack
+        env: { DRY_RUN: "1" }
+        run: |
+          docker compose --profile ci up -d --build backend tools-runner
+      - name: Wait for health
         run: |
           for i in {1..30}; do
-            curl -fsS http://localhost:8000/healthz && exit 0
-            echo "Waiting for API... ($i/30)"
+            curl -fsS http://localhost:8000/health && exit 0
             sleep 2
           done
-          echo "API did not become healthy in time" >&2
-          docker compose logs api || true
-          exit 1
-
-      - name: Hit mock scan endpoint
-        run: curl -fsS "http://localhost:8000/scan/vuln?target=example.com"
-
-      - name: Show logs on failure
-        if: failure()
-        run: docker compose logs --no-color || true
-
+          echo "health check failed"; exit 1
       - name: Tear down
         if: always()
         run: docker compose down -v

@@ -28,3 +28,10 @@ def root():
 @app.get("/ui")
 def ui():
     return FileResponse("backend/app/static/index.html")
+
+from fastapi import FastAPI
+import os
+app = globals().get("app") or FastAPI()
+@app.get("/health")
+def health():
+    return {"status": "ok", "mode": "dry-run" if os.getenv("DRY_RUN")=="1" else "normal"}
